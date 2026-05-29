@@ -56,29 +56,16 @@ jobs:
 
       - name: Patch Deployment for local image
         run: |
-          sed -i 's|YOUR_DOCKERHUB_USERNAME/rick-morty:latest|rick-morty:test|g' yamls/Deployment.yaml
-          sed -i 's|imagePullPolicy: Always|imagePullPolicy: Never|g' yamls/Deployment.yaml
-
+         sed -i 's|image:.*|image: rick-morty:latest|g' yamls/Deployment.yaml
+         sed -i 's|imagePullPolicy:.*|imagePullPolicy: Never|g' yamls/Deployment.yaml
       - name: Deploy to cluster
         run: |
           kubectl apply -f yamls/Deployment.yaml
           kubectl apply -f yamls/Service.yaml
 
       - name: Wait for Deployment to be ready
-        run: |
-          set +e
-          kubectl rollout status deployment/rick-morty-app --timeout=300s
-          ROLLOUT_STATUS=$?
-          if [ $ROLLOUT_STATUS -ne 0 ]; then
-            echo 'Rollout not ready, continuing to debug...'
-          fi
-          set -e
-          
-            - name: Check pods status and describe to check the error
-              run: |
-                kubectl get pods
-                kubectl describe pods
-                kubectl logs -l app=rick-morty
+        run: kubectl rollout status deployment/rick-morty-app --timeout=180s
+
       - name: Run Smoke Tests
         run: |
           kubectl port-forward svc/rick-morty-service 8080:80 &
