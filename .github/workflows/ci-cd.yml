@@ -65,14 +65,20 @@ jobs:
           kubectl apply -f yamls/Service.yaml
 
       - name: Wait for Deployment to be ready
-        run: kubectl rollout status deployment/rick-morty-app --timeout=300s  || echo 'Rollout not ready, continuing to debug...'
-
-      - name: Check pods status and describe to check the error
         run: |
-          kubectl get pods
-          kubectl describe pods
-          kubectl logs -l app=rick-morty
-
+          set +e
+          kubectl rollout status deployment/rick-morty-app --timeout=300s
+          ROLLOUT_STATUS=$?
+          if [ $ROLLOUT_STATUS -ne 0 ]; then
+            echo 'Rollout not ready, continuing to debug...'
+          fi
+          set -e
+          
+            - name: Check pods status and describe to check the error
+              run: |
+                kubectl get pods
+                kubectl describe pods
+                kubectl logs -l app=rick-morty
       - name: Run Smoke Tests
         run: |
           kubectl port-forward svc/rick-morty-service 8080:80 &
