@@ -60,8 +60,9 @@ jobs:
           kubectl describe pods
       - name: Patch Deployment for local image
         run: |
-          sed -i 's|YOUR_DOCKERHUB_USERNAME/rick-morty:latest|rick-morty:test|g' yamls/Deployment.yaml
-          sed -i 's|imagePullPolicy: Always|imagePullPolicy: Never|g' yamls/Deployment.yaml
+          sed -i 's|image:.*|image: rick-morty:latest|g' yamls/Deployment.yaml
+          sed -i 's|imagePullPolicy:.*|imagePullPolicy: Never|g' yamls/Deployment.yaml
+          cat yamls/Deployment.yaml
 
       - name: Deploy to cluster
         run: |
