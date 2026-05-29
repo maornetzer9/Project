@@ -95,3 +95,4 @@ jobs:
       - name: Delete kind cluster
         if: always()
         run: kind delete cluster --name rick-morty-cluster
+        
