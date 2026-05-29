@@ -81,19 +81,17 @@ jobs:
           curl -sf http://localhost:8080/healthcheck | grep '"status":"ok"'
 
           echo "Testing /characters..."
-          RESULT=$(curl -sf http://localhost:8080/characters)
-          echo $RESULT | python3 -c "
+          curl -sf http://localhost:8080/characters | python3 -c "
           import sys, json
           d = json.load(sys.stdin)
           assert d['count'] > 0, 'No results!'
-          print(f'OK: found {d[chr(34)]count{chr(34)]} characters')
+          print('OK: found', d['count'], 'characters')
           "
 
           echo "Testing /characters/csv..."
           curl -sf http://localhost:8080/characters/csv | head -2
 
           echo "All tests passed!"
-
       - name: Delete kind cluster
         if: always()
         run: kind delete cluster --name rick-morty-cluster
