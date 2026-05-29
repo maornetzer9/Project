@@ -67,6 +67,12 @@ jobs:
       - name: Wait for Deployment to be ready
         run: kubectl rollout status deployment/rick-morty-app --timeout=300s
 
+      - name: Check pods status and describe to check the error
+        run: |
+          kubectl get pods
+          kubectl describe pods
+          kubectl logs -l app=rick-morty
+
       - name: Run Smoke Tests
         run: |
           kubectl port-forward svc/rick-morty-service 8080:80 &
