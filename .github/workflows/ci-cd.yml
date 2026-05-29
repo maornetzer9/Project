@@ -54,17 +54,22 @@ jobs:
       - name: Load image into kind
         run: kind load docker-image rick-morty:test --name rick-morty-cluster
 
+      - name: Debug Pod status
+        run: |
+          kubectl get pods -o wide
+          kubectl describe pods
       - name: Patch Deployment for local image
         run: |
-         sed -i 's|image:.*|image: rick-morty:latest|g' yamls/Deployment.yaml
-         sed -i 's|imagePullPolicy:.*|imagePullPolicy: Never|g' yamls/Deployment.yaml
+          sed -i 's|YOUR_DOCKERHUB_USERNAME/rick-morty:latest|rick-morty:test|g' yamls/Deployment.yaml
+          sed -i 's|imagePullPolicy: Always|imagePullPolicy: Never|g' yamls/Deployment.yaml
+
       - name: Deploy to cluster
         run: |
           kubectl apply -f yamls/Deployment.yaml
           kubectl apply -f yamls/Service.yaml
 
       - name: Wait for Deployment to be ready
-        run: kubectl rollout status deployment/rick-morty-app --timeout=180s
+        run: kubectl rollout status deployment/rick-morty-app --timeout=120s
 
       - name: Run Smoke Tests
         run: |
