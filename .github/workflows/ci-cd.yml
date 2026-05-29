@@ -65,10 +65,8 @@ jobs:
           kubectl apply -f yamls/Service.yaml
 
       - name: Wait for Deployment to be ready
-        run: kubectl rollout status deployment/rick-morty-app --timeout=300s
-
-      - name: Check pods status and describe to check the error
         run: |
+          kubectl rollout status deployment/rick-morty-app --timeout=120s
           kubectl get pods
           kubectl describe pods
           kubectl logs -l app=rick-morty
