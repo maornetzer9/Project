@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rick-morty-app
+  labels:
+    app: rick-morty
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rick-morty
+  template:
+    metadata:
+      labels:
+        app: rick-morty
+    spec:
+      containers:
+        - name: rick-morty
+          image: maornetzer/rick-morty:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"

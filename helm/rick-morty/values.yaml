@@ -1,0 +1,34 @@
+replicaCount: 2
+
+image:
+  repository: maornetzer/rick-morty
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 5000
+  nodePort: 30080
+
+ingress:
+  enabled: true
+  host: rick-morty.local
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "250m"
+    memory: "256Mi"
+
+livenessProbe:
+  path: /healthcheck
+  initialDelaySeconds: 10
+  periodSeconds: 15
+
+readinessProbe:
+  path: /healthcheck
+  initialDelaySeconds: 5
+  periodSeconds: 10

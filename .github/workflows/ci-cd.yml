@@ -1,0 +1,94 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/rick-morty
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  integration-test:
+    name: Deploy & Smoke Tests
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+          chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
+
+      - name: Create kind cluster
+        run: kind create cluster --name rick-morty-cluster
+
+      - name: Build Docker image locally
+        run: docker build -t rick-morty:test .
+
+      - name: Load image into kind
+        run: kind load docker-image rick-morty:test --name rick-morty-cluster
+
+      - name: Patch Deployment for local image
+        run: |
+          sed -i 's|YOUR_DOCKERHUB_USERNAME/rick-morty:latest|rick-morty:test|g' yamls/Deployment.yaml
+          sed -i 's|imagePullPolicy: Always|imagePullPolicy: Never|g' yamls/Deployment.yaml
+
+      - name: Deploy to cluster
+        run: |
+          kubectl apply -f yamls/Deployment.yaml
+          kubectl apply -f yamls/Service.yaml
+
+      - name: Wait for Deployment to be ready
+        run: kubectl rollout status deployment/rick-morty-app --timeout=120s
+
+      - name: Run Smoke Tests
+        run: |
+          kubectl port-forward svc/rick-morty-service 8080:80 &
+          sleep 5
+
+          echo "Testing /healthcheck..."
+          curl -sf http://localhost:8080/healthcheck | grep '"status":"ok"'
+
+          echo "Testing /characters..."
+          RESULT=$(curl -sf http://localhost:8080/characters)
+          echo $RESULT | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert d['count'] > 0, 'No results!'
+          print(f'OK: found {d[chr(34)]count{chr(34)]} characters')
+          "
+
+          echo "Testing /characters/csv..."
+          curl -sf http://localhost:8080/characters/csv | head -2
+
+          echo "All tests passed!"
+
+      - name: Delete kind cluster
+        if: always()
+        run: kind delete cluster --name rick-morty-cluster
